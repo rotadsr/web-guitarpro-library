@@ -121,10 +121,13 @@
     #bp-scroll::-webkit-scrollbar { height: 4px; }
     #bp-scroll::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
     #frozen-strip-row { height: 22px; display: flex; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.3); }
-    #frozen-track-rows { display: flex; flex-direction: column; }
+    #frozen-track-rows { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: hidden; }
     #section-strip-row { height: 22px; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.3); display: flex; }
     #section-strip { display: flex; flex-shrink: 0; height: 22px; }
-    #bar-cells-grid { display: flex; flex-direction: column; flex: 1; }
+    #bar-cells-grid { display: flex; flex-direction: column; flex: 1; overflow-y: hidden; }
+    .trk-scroll-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1; font-size: 10px; transition: color 0.1s; flex-shrink: 0; }
+    .trk-scroll-btn:hover:not(:disabled) { color: var(--accent); }
+    .trk-scroll-btn:disabled { opacity: 0.2; cursor: default; }
     .tgr-cells-row { height: 22px; display: flex; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
     .sec-block { display: flex; align-items: center; padding-left: 4px; overflow: hidden; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.2); cursor: pointer; transition: filter 0.1s; position: relative; }
     .sec-block:hover { filter: brightness(1.35); }
@@ -173,6 +176,13 @@
     .icon-pick-btn { background: var(--surface2); border: none; border-radius: 4px; color: var(--text); cursor: pointer; font-size: 11px; padding: 5px 7px; text-align: left; display: flex; align-items: center; gap: 5px; transition: background 0.1s; }
     .icon-pick-btn:hover { background: var(--border); }
     .icon-pick-btn .pe { font-size: 14px; line-height: 1; }
+    .tgl-sound-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0 3px; border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; }
+    .tgl-sound-btn:hover { color: var(--accent); }
+    #sound-popup { min-width: 130px; }
+    #sound-popup-btns { display: flex; flex-direction: column; gap: 2px; }
+    .sound-pick-btn { background: var(--surface2); border: none; border-radius: 4px; color: var(--text); cursor: pointer; font-size: 11px; padding: 5px 8px; text-align: left; transition: background 0.1s; }
+    .sound-pick-btn:hover { background: var(--border); }
+    .sound-pick-btn.active { background: var(--accent-dim); color: var(--accent); }
 
     /* Metadata modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 99998; display: flex; align-items: center; justify-content: center; }
@@ -317,6 +327,8 @@
   <div id="bp-hdr">
     <div id="bp-instr-hdr">
       <span class="panel-label">Instruments</span>
+      <button id="trk-scroll-up" class="trk-scroll-btn" title="Scroll up" disabled>▲</button>
+      <button id="trk-scroll-dn" class="trk-scroll-btn" title="Scroll down" disabled>▼</button>
       <button id="track-edit-btn" class="track-edit-pencil" title="Edit track names and icons"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg></button>
     </div>
     <div id="bp-mix-hdr">
@@ -383,6 +395,12 @@
 <div id="icon-popup" class="popup-base">
   <div class="popup-title">Instrument</div>
   <div id="icon-popup-btns"></div>
+</div>
+
+<!-- Sound picker popup -->
+<div id="sound-popup" class="popup-base">
+  <div class="popup-title" id="sound-popup-title">Sound</div>
+  <div id="sound-popup-btns"></div>
 </div>
 
 <!-- Metadata modal -->
@@ -473,6 +491,8 @@
   const iconPopup     = document.getElementById('icon-popup');
   const iconPopupBtns = document.getElementById('icon-popup-btns');
   const trackEditBtn  = document.getElementById('track-edit-btn');
+  const trkScrollUp   = document.getElementById('trk-scroll-up');
+  const trkScrollDn   = document.getElementById('trk-scroll-dn');
   const editMetaBtn   = document.getElementById('edit-meta-btn');
   const metaModal     = document.getElementById('meta-modal');
   const ytMini        = document.getElementById('yt-mini');
@@ -483,6 +503,7 @@
   const searchClear   = document.getElementById('search-clear');
 
   let BAR_W = 28;
+  let trkScrollPx = 0;
 
   // ── Section types ──
   const SECTION_TYPES = [
@@ -507,6 +528,163 @@
     {icon:'🎻',label:'Strings'},{icon:'🎤',label:'Vocals'},{icon:'🪕',label:'Banjo/Uke'},
     {icon:'🪈',label:'Flute'},{icon:'🎛️',label:'Synth'},{icon:'🔔',label:'Other'},
   ];
+
+  const INSTRUMENT_SOUNDS = {
+    guitar: [
+      { label: 'Nylon',        program: 24 },
+      { label: 'Steel',        program: 25 },
+      { label: 'Jazz',         program: 26 },
+      { label: 'Strat',        program: 27 },
+      { label: 'Muted',        program: 28 },
+      { label: 'Crunch',       program: 29 },
+      { label: 'Les Paul',     program: 30 },
+      { label: 'Harmonics',    program: 31 },
+    ],
+    bass: [
+      { label: 'Acoustic',     program: 32 },
+      { label: 'Finger',       program: 33 },
+      { label: 'Pick',         program: 34 },
+      { label: 'Fretless',     program: 35 },
+      { label: 'Slap',         program: 36 },
+      { label: 'Synth Bass',   program: 38 },
+    ],
+    drums: [
+      { label: 'Standard',     program: 0  },
+      { label: 'Room',         program: 8  },
+      { label: 'Power',        program: 16 },
+      { label: 'Electronic',   program: 24 },
+      { label: 'Jazz Kit',     program: 32 },
+      { label: 'Brush',        program: 40 },
+    ],
+    keys: [
+      { label: 'Grand Piano',  program: 0  },
+      { label: 'Bright Piano', program: 1  },
+      { label: 'Elec Grand',   program: 2  },
+      { label: 'Honky Tonk',   program: 3  },
+      { label: 'Elec Piano 1', program: 4  },
+      { label: 'Elec Piano 2', program: 5  },
+      { label: 'Harpsichord',  program: 6  },
+      { label: 'Clavinet',     program: 7  },
+      { label: 'Celesta',      program: 8  },
+      { label: 'Glockenspiel', program: 9  },
+      { label: 'Vibraphone',   program: 11 },
+      { label: 'Marimba',      program: 12 },
+      { label: 'Xylophone',    program: 13 },
+      { label: 'Tubular Bells',program: 14 },
+      { label: 'Drawbar Organ',program: 16 },
+      { label: 'Rock Organ',   program: 18 },
+      { label: 'Church Organ', program: 19 },
+      { label: 'Accordion',    program: 21 },
+      { label: 'Harmonica',    program: 22 },
+    ],
+    brass: [
+      { label: 'Trumpet',      program: 56 },
+      { label: 'Trombone',     program: 57 },
+      { label: 'Tuba',         program: 58 },
+      { label: 'Muted Trumpet',program: 59 },
+      { label: 'French Horn',  program: 60 },
+      { label: 'Brass Section',program: 61 },
+      { label: 'Synth Brass',  program: 62 },
+    ],
+    saxophone: [
+      { label: 'Alto Sax',     program: 65 },
+      { label: 'Tenor Sax',    program: 66 },
+      { label: 'Soprano Sax',  program: 64 },
+      { label: 'Bari Sax',     program: 67 },
+      { label: 'Oboe',         program: 68 },
+      { label: 'English Horn', program: 69 },
+      { label: 'Clarinet',     program: 71 },
+      { label: 'Bassoon',      program: 70 },
+    ],
+    strings: [
+      { label: 'Violin',       program: 40 },
+      { label: 'Viola',        program: 41 },
+      { label: 'Cello',        program: 42 },
+      { label: 'Contrabass',   program: 43 },
+      { label: 'Tremolo',      program: 44 },
+      { label: 'Pizzicato',    program: 45 },
+      { label: 'String Ens.',  program: 48 },
+      { label: 'Synth Strings',program: 50 },
+      { label: 'Orchestra Hit',program: 55 },
+    ],
+    vocals: [
+      { label: 'Choir Aahs',   program: 52 },
+      { label: 'Voice Oohs',   program: 53 },
+      { label: 'Synth Choir',  program: 54 },
+      { label: 'Whistle',      program: 78 },
+    ],
+    plucked: [
+      { label: 'Harp',         program: 46 },
+      { label: 'Banjo',        program: 105},
+      { label: 'Sitar',        program: 104},
+      { label: 'Koto',         program: 107},
+      { label: 'Kalimba',      program: 108},
+      { label: 'Nylon Guitar', program: 24 },
+      { label: 'Steel Guitar', program: 25 },
+    ],
+    flute: [
+      { label: 'Flute',        program: 73 },
+      { label: 'Piccolo',      program: 72 },
+      { label: 'Recorder',     program: 74 },
+      { label: 'Pan Flute',    program: 75 },
+      { label: 'Ocarina',      program: 79 },
+      { label: 'Shakuhachi',   program: 77 },
+      { label: 'Whistle',      program: 78 },
+    ],
+    synth: [
+      { label: 'Square Lead',  program: 80 },
+      { label: 'Saw Lead',     program: 81 },
+      { label: 'Charang',      program: 84 },
+      { label: 'Voice Lead',   program: 85 },
+      { label: 'Warm Pad',     program: 89 },
+      { label: 'Choir Pad',    program: 91 },
+      { label: 'Halo Pad',     program: 94 },
+      { label: 'Sweep Pad',    program: 95 },
+      { label: 'Crystal FX',   program: 98 },
+      { label: 'Atmosphere',   program: 99 },
+      { label: 'Synth Bass',   program: 38 },
+    ],
+    other: [
+      { label: 'Harp',         program: 46 },
+      { label: 'Grand Piano',  program: 0  },
+      { label: 'Violin',       program: 40 },
+      { label: 'Cello',        program: 42 },
+      { label: 'String Ens.',  program: 48 },
+      { label: 'Trumpet',      program: 56 },
+      { label: 'French Horn',  program: 60 },
+      { label: 'Flute',        program: 73 },
+      { label: 'Oboe',         program: 68 },
+      { label: 'Clarinet',     program: 71 },
+      { label: 'Timpani',      program: 47 },
+      { label: 'Steel Drums',  program: 114},
+      { label: 'Taiko Drum',   program: 116},
+      { label: 'Fiddle',       program: 110},
+      { label: 'Bagpipe',      program: 109},
+      { label: 'Shamisen',     program: 106},
+      { label: 'Orchestra Hit',program: 55 },
+    ],
+  };
+
+  const ICON_SOUND_CATEGORY = {
+    '🎸': 'guitar', '🎵': 'bass', '🥁': 'drums', '🎹': 'keys',
+    '🎺': 'brass',  '🎷': 'saxophone', '🎻': 'strings', '🎤': 'vocals',
+    '🪕': 'plucked','🪈': 'flute', '🎛️': 'synth', '🔔': 'other',
+  };
+  const SOUND_CATEGORY_LABELS = {
+    guitar: 'Guitar Sound', bass: 'Bass Sound', drums: 'Drum Kit',
+    keys: 'Keys / Piano', brass: 'Brass', saxophone: 'Reed / Sax',
+    strings: 'Strings', vocals: 'Vocal', plucked: 'Plucked',
+    flute: 'Flute / Woodwind', synth: 'Synth', other: 'Sound',
+  };
+
+  function makeSvgIcon(pathD) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', '11'); svg.setAttribute('height', '11');
+    svg.setAttribute('viewBox', '0 0 16 16'); svg.setAttribute('fill', 'currentColor');
+    const p = document.createElementNS(ns, 'path'); p.setAttribute('d', pathD);
+    svg.appendChild(p); return svg;
+  }
 
   function iconFromProgram(prog, drums) {
     if (drums) return '🥁';
@@ -543,6 +721,7 @@
   let popupTargetBar = -1, popupEndBar = -1, popupMode = 'edit';
   let addMode = false, addStart = -1;
   let iconPopupTarget = -1;
+  let soundPopupTarget = -1;
   // YouTube
   let ytPlayer = null, ytPlayerReady = false, ytApiReady = false, ytApiCbs = [];
   let ytSyncEnabled = false, ytCurrentVid = null, lastAtTimeSec = 0, lastYtSync = 0;
@@ -783,6 +962,46 @@
   function openIconPopup(x, y, idx) { closeAllPopups(); iconPopupTarget = idx; iconPopup.classList.add('open'); requestAnimationFrame(() => positionPopup(iconPopup, x, y)); }
   function closeIconPopup() { iconPopup.classList.remove('open'); iconPopupTarget = -1; }
 
+  // ── Sound popup ──
+  function trackSoundCategory(ti) {
+    if (!currentScore || !currentScore.tracks[ti]) return 'other';
+    const track = currentScore.tracks[ti];
+    if (track.playbackInfo.primaryChannel === 9) return 'drums';
+    const ov = trackOverrides[ti] || {};
+    const isDrums = track.playbackInfo.primaryChannel === 9;
+    const icon = ov.icon || iconFromProgram(track.playbackInfo?.program || 0, isDrums);
+    return ICON_SOUND_CATEGORY[icon] || 'other';
+  }
+  function openSoundPopup(x, y, ti) {
+    closeAllPopups(); soundPopupTarget = ti;
+    const track = currentScore.tracks[ti];
+    const cat = trackSoundCategory(ti);
+    const sounds = INSTRUMENT_SOUNDS[cat] || INSTRUMENT_SOUNDS.guitar;
+    const curProg = (trackOverrides[ti] && trackOverrides[ti].program != null)
+      ? trackOverrides[ti].program : track.playbackInfo.program;
+    document.getElementById('sound-popup-title').textContent = SOUND_CATEGORY_LABELS[cat] || 'Sound';
+    const btnsEl = document.getElementById('sound-popup-btns');
+    while (btnsEl.firstChild) btnsEl.removeChild(btnsEl.firstChild);
+    sounds.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'sound-pick-btn' + (s.program === curProg ? ' active' : '');
+      btn.textContent = s.label;
+      btn.addEventListener('click', () => { applyTrackSound(soundPopupTarget, s.program); closeSoundPopup(); });
+      btnsEl.appendChild(btn);
+    });
+    const popup = document.getElementById('sound-popup');
+    popup.classList.add('open'); requestAnimationFrame(() => positionPopup(popup, x, y));
+  }
+  function closeSoundPopup() { document.getElementById('sound-popup').classList.remove('open'); soundPopupTarget = -1; }
+  function applyTrackSound(ti, program) {
+    if (!currentScore || !currentScore.tracks[ti]) return;
+    currentScore.tracks[ti].playbackInfo.program = program;
+    if (!trackOverrides[ti]) trackOverrides[ti] = {};
+    trackOverrides[ti].program = program;
+    saveTracks();
+    if (api) api.renderTracks(Array.from(currentScore.tracks));
+  }
+
   secAllBtnEl.addEventListener('click', () => selectTrack(-1));
 
   trackEditBtn.addEventListener('click', () => {
@@ -792,6 +1011,32 @@
     bottomPanel.classList.toggle('track-edit-mode', trackEditMode);
     if (currentScore) buildGrid(currentScore);
   });
+
+  // ── Track row scroll ──
+  function applyTrkScroll() {
+    const rowH = 22;
+    const visH = frozenTrackRowsEl.clientHeight;
+    const totalH = frozenTrackRowsEl.scrollHeight;
+    const maxPx = Math.max(0, totalH - visH);
+    trkScrollPx = Math.max(0, Math.min(trkScrollPx, maxPx));
+    frozenTrackRowsEl.scrollTop = trkScrollPx;
+    barCellsGridEl.scrollTop = trkScrollPx;
+    trkScrollUp.disabled = trkScrollPx <= 0;
+    trkScrollDn.disabled = trkScrollPx >= maxPx;
+  }
+  function updateTrkScrollBtns() { applyTrkScroll(); }
+  trkScrollUp.addEventListener('click', () => { trkScrollPx -= 22; applyTrkScroll(); });
+  trkScrollDn.addEventListener('click', () => { trkScrollPx += 22; applyTrkScroll(); });
+  frozenTrackRowsEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    trkScrollPx += e.deltaY > 0 ? 22 : -22;
+    applyTrkScroll();
+  }, { passive: false });
+  barCellsGridEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    trkScrollPx += e.deltaY > 0 ? 22 : -22;
+    applyTrkScroll();
+  }, { passive: false });
 
   // ── Section popup ──
   SECTION_TYPES.forEach(t => {
@@ -823,10 +1068,12 @@
     el.style.left = Math.min(x, window.innerWidth  - pw - 10) + 'px';
     el.style.top  = Math.max(10, y - ph - 10) + 'px';
   }
-  function closeAllPopups() { closeSectionPopup(); closeIconPopup(); }
+  function closeAllPopups() { closeSectionPopup(); closeIconPopup(); closeSoundPopup(); }
   document.addEventListener('mousedown', e => {
     if (sectionPopup.classList.contains('open') && !sectionPopup.contains(e.target)) closeSectionPopup();
     if (iconPopup.classList.contains('open')    && !iconPopup.contains(e.target))    closeIconPopup();
+    const sp = document.getElementById('sound-popup');
+    if (sp.classList.contains('open') && !sp.contains(e.target)) closeSoundPopup();
   });
 
   // ── localStorage helpers ──
@@ -933,6 +1180,10 @@
       currentScore  = score;
       masterBarsRef = Array.from(score.masterBars);
       loadSections(); loadTracks();
+      // Apply stored program overrides before MIDI generation
+      score.tracks.forEach((t, ti) => {
+        if (trackOverrides[ti] && trackOverrides[ti].program != null) t.playbackInfo.program = trackOverrides[ti].program;
+      });
       // Pre-populate metadata from score on first load
       const m = getFileMeta(currentFileKey);
       if (!m.title  && score.title)  { m.title  = score.title;  saveFileMeta(currentFileKey, m); }
@@ -942,6 +1193,7 @@
       updateSidebarLabel(currentFileKey, m);
       setupYouTube(m.youtubeUrl || '');
       buildGrid(score);
+      trkScrollPx = 0; updateTrkScrollBtns();
     });
 
     api.renderFinished.on(() => { hideLoading(); setEnabled(true); requestAnimationFrame(() => requestAnimationFrame(styleCursor)); });
@@ -1060,6 +1312,13 @@
         lbl.addEventListener('click', () => selectTrack(ti));
       }
       lbl.appendChild(iconBtn); lbl.appendChild(nameSpan);
+      if (trackEditMode) {
+        const soundBtn = document.createElement('button'); soundBtn.className = 'tgl-sound-btn'; soundBtn.title = 'Change sound';
+        // equalizer / bar-chart icon
+        soundBtn.appendChild(makeSvgIcon('M11 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h1V7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7h1V2z'));
+        soundBtn.addEventListener('click', e => { e.stopPropagation(); openSoundPopup(e.clientX, e.clientY, ti); });
+        lbl.appendChild(soundBtn);
+      }
 
       const mix = document.createElement('div'); mix.className = 'tgr-mix';
       const trkVol = mixerVolumes[ti] ?? 100;
@@ -1102,6 +1361,7 @@
     });
 
     barPosInfo.textContent = bars.length+' bars';
+    requestAnimationFrame(updateTrkScrollBtns);
   }
 
   function getCurrentBar(tick) { let b=0; for(let i=0;i<masterBarsRef.length;i++){if(masterBarsRef[i].start<=tick)b=i;else break;} return b; }
