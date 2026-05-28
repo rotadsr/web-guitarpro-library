@@ -120,9 +120,9 @@
     #bp-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: var(--surface2) transparent; }
     #bp-scroll::-webkit-scrollbar { height: 4px; }
     #bp-scroll::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
-    #frozen-strip-row { height: 22px; display: flex; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.3); }
+    #frozen-strip-row { height: 22px; display: flex; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 2; background: var(--surface); }
     #frozen-track-rows { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: hidden; }
-    #section-strip-row { height: 22px; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.3); display: flex; }
+    #section-strip-row { height: 22px; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.3); display: flex; position: sticky; top: 0; z-index: 2; background: var(--bg); }
     #section-strip { display: flex; flex-shrink: 0; height: 22px; }
     #bar-cells-grid { display: flex; flex-direction: column; flex: 1; overflow-y: hidden; }
     .trk-scroll-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1; font-size: 10px; transition: color 0.1s; flex-shrink: 0; }
@@ -131,7 +131,7 @@
     .tgr-cells-row { height: 22px; display: flex; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
     .sec-block { display: flex; align-items: center; padding-left: 4px; overflow: hidden; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.2); cursor: pointer; transition: filter 0.1s; position: relative; }
     .sec-block:hover { filter: brightness(1.35); }
-    .sec-block:hover::after { content: '✎'; position: absolute; right: 3px; font-size: 9px; color: rgba(255,255,255,0.75); }
+    #bottom-panel.nav-edit-mode .sec-block:hover::after { content: '✎'; position: absolute; right: 3px; font-size: 9px; color: rgba(255,255,255,0.75); }
     .sec-block span { font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.88); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.5); pointer-events: none; }
 
     /* Per-track frozen rows */
@@ -336,23 +336,27 @@
     </div>
     <div id="bp-nav-hdr">
       <span class="panel-label">Navigate</span>
+      <button id="nav-edit-btn" class="track-edit-pencil" title="Edit sections"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg></button>
       <span id="bar-pos-info"></span>
       <span style="font-size:10px;color:var(--text-muted);flex-shrink:0">Grid</span>
       <input type="range" id="grid-zoom" min="12" max="64" value="28" title="Grid zoom — double-click to reset" style="width:52px">
-      <button id="add-section-btn" class="nav-add-btn" disabled>+ Section</button>
+      <button id="add-section-btn" class="nav-add-btn" style="display:none" disabled>+ Section</button>
     </div>
   </div>
   <div id="bp-body">
     <div id="bp-frozen">
-      <div id="frozen-strip-row">
-        <div id="sec-all-btn" class="tgr-label active">🎵 <span class="tgl-name">All instruments</span></div>
-        <div class="tgr-mix"></div>
+      <div id="frozen-track-rows">
+        <div id="frozen-strip-row">
+          <div id="sec-all-btn" class="tgr-label active">🎵 <span class="tgl-name">All instruments</span></div>
+          <div class="tgr-mix"></div>
+        </div>
       </div>
-      <div id="frozen-track-rows"></div>
     </div>
     <div id="bp-scroll">
-      <div id="section-strip-row"><div id="section-strip"></div></div>
-      <div id="bar-cells-grid"><span id="bar-grid-empty">Load a file to see the bar map</span></div>
+      <div id="bar-cells-grid">
+        <div id="section-strip-row"><div id="section-strip"></div></div>
+        <span id="bar-grid-empty">Load a file to see the bar map</span>
+      </div>
     </div>
   </div>
 </div>
@@ -488,6 +492,7 @@
   const popupBtnsEl   = document.getElementById('popup-btns');
   const popupClearBtn = document.getElementById('popup-clear');
   const addSectionBtn = document.getElementById('add-section-btn');
+  const navEditBtn    = document.getElementById('nav-edit-btn');
   const iconPopup     = document.getElementById('icon-popup');
   const iconPopupBtns = document.getElementById('icon-popup-btns');
   const trackEditBtn  = document.getElementById('track-edit-btn');
@@ -534,10 +539,10 @@
       { label: 'Nylon',        program: 24 },
       { label: 'Steel',        program: 25 },
       { label: 'Jazz',         program: 26 },
-      { label: 'Strat',        program: 27 },
+      { label: 'Clean',        program: 27 },
       { label: 'Muted',        program: 28 },
       { label: 'Crunch',       program: 29 },
-      { label: 'Les Paul',     program: 30 },
+      { label: 'Distor',       program: 30 },
       { label: 'Harmonics',    program: 31 },
     ],
     bass: [
@@ -709,9 +714,11 @@
   let activeBarIdx  = -1;
   let cursorTimer   = null;
   let currentFileKey = '';
+  let reloadData = null; // string (URL) or Uint8Array (copied bytes) — used to re-load for MIDI regen
   let sectionOverrides = {};
   let trackOverrides   = {};
   let trackEditMode    = false;
+  let navEditMode      = false;
   let mixerMuted   = {};  // ti → bool
   let mixerSoloed  = {};  // ti → bool
   let mixerVolumes = {};  // ti → 0-100
@@ -722,6 +729,10 @@
   let addMode = false, addStart = -1;
   let iconPopupTarget = -1;
   let soundPopupTarget = -1;
+  let selectedTrackIdx = -1;          // -1 = all instruments
+  let pendingSoundChangeSelect = null; // null = none pending; -1/n = restore after renderScore
+  let pendingPlaybackResume   = null; // {tick, play} — restore position/state after sound reload
+  let isPlaying = false;              // mirror of api.playerState — avoids alphaTab enum access
   // YouTube
   let ytPlayer = null, ytPlayerReady = false, ytApiReady = false, ytApiCbs = [];
   let ytSyncEnabled = false, ytCurrentVid = null, lastAtTimeSec = 0, lastYtSync = 0;
@@ -994,12 +1005,37 @@
   }
   function closeSoundPopup() { document.getElementById('sound-popup').classList.remove('open'); soundPopupTarget = -1; }
   function applyTrackSound(ti, program) {
-    if (!currentScore || !currentScore.tracks[ti]) return;
-    currentScore.tracks[ti].playbackInfo.program = program;
+    if (!currentScore || !currentScore.tracks[ti] || !api || !reloadData) return;
     if (!trackOverrides[ti]) trackOverrides[ti] = {};
     trackOverrides[ti].program = program;
     saveTracks();
-    if (api) api.renderTracks(Array.from(currentScore.tracks));
+    // The only way to get a new MIDI program into alphaTab's synth is a full reload.
+    // api.renderTracks() only changes the visual; api.renderScore() re-renders visually
+    // but does NOT regenerate MIDI or fire scoreLoaded. api.load() does both.
+    pendingSoundChangeSelect = selectedTrackIdx;
+    pendingPlaybackResume = {
+      tick: api.tickPosition || 0,
+      play: isPlaying,
+    };
+    showLoading('Changing sound…');
+    if (typeof reloadData === 'string') {
+      api.load(reloadData);
+    } else {
+      api.load(reloadData.slice(0)); // fresh copy — avoid double-transfer of the same buffer
+    }
+  }
+
+  function applyTrackPan(ti, panVal) {
+    if (!currentScore || !currentScore.tracks[ti] || !api || !reloadData) return;
+    if (!trackOverrides[ti]) trackOverrides[ti] = {};
+    trackOverrides[ti].pan = panVal;
+    mixerPans[ti] = panVal;
+    saveTracks();
+    pendingSoundChangeSelect = selectedTrackIdx;
+    pendingPlaybackResume = { tick: api.tickPosition || 0, play: isPlaying };
+    showLoading('Applying pan…');
+    if (typeof reloadData === 'string') { api.load(reloadData); }
+    else { api.load(reloadData.slice(0)); }
   }
 
   secAllBtnEl.addEventListener('click', () => selectTrack(-1));
@@ -1010,6 +1046,18 @@
     trackEditBtn.title = trackEditMode ? 'Exit edit mode' : 'Edit track names and icons';
     bottomPanel.classList.toggle('track-edit-mode', trackEditMode);
     if (currentScore) buildGrid(currentScore);
+  });
+
+  navEditBtn.addEventListener('click', () => {
+    navEditMode = !navEditMode;
+    navEditBtn.classList.toggle('active', navEditMode);
+    bottomPanel.classList.toggle('nav-edit-mode', navEditMode);
+    addSectionBtn.style.display = navEditMode ? '' : 'none';
+    if (!navEditMode && addMode) exitAddMode();
+    document.querySelectorAll('.sec-block').forEach(bl => {
+      const label = bl.querySelector('span')?.textContent || 'Section';
+      bl.title = navEditMode ? label + ' — click to edit' : label + ' — click to play from here';
+    });
   });
 
   // ── Track row scroll ──
@@ -1028,11 +1076,13 @@
   trkScrollUp.addEventListener('click', () => { trkScrollPx -= 22; applyTrkScroll(); });
   trkScrollDn.addEventListener('click', () => { trkScrollPx += 22; applyTrkScroll(); });
   frozenTrackRowsEl.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
     e.preventDefault();
     trkScrollPx += e.deltaY > 0 ? 22 : -22;
     applyTrkScroll();
   }, { passive: false });
   barCellsGridEl.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
     e.preventDefault();
     trkScrollPx += e.deltaY > 0 ? 22 : -22;
     applyTrkScroll();
@@ -1182,7 +1232,9 @@
       loadSections(); loadTracks();
       // Apply stored program overrides before MIDI generation
       score.tracks.forEach((t, ti) => {
-        if (trackOverrides[ti] && trackOverrides[ti].program != null) t.playbackInfo.program = trackOverrides[ti].program;
+        const ov = trackOverrides[ti];
+        if (ov && ov.program != null) t.playbackInfo.program = ov.program;
+        if (ov && ov.pan    != null) t.playbackInfo.balance = Math.round((ov.pan + 100) / 200 * 16);
       });
       // Pre-populate metadata from score on first load
       const m = getFileMeta(currentFileKey);
@@ -1193,13 +1245,29 @@
       updateSidebarLabel(currentFileKey, m);
       setupYouTube(m.youtubeUrl || '');
       buildGrid(score);
-      trkScrollPx = 0; updateTrkScrollBtns();
+      if (pendingSoundChangeSelect !== null) {
+        const restore = pendingSoundChangeSelect;
+        pendingSoundChangeSelect = null;
+        selectTrack(restore);
+      } else {
+        selectedTrackIdx = -1;
+        trkScrollPx = 0; updateTrkScrollBtns();
+      }
     });
 
-    api.renderFinished.on(() => { hideLoading(); setEnabled(true); requestAnimationFrame(() => requestAnimationFrame(styleCursor)); });
+    api.renderFinished.on(() => {
+      hideLoading(); setEnabled(true); requestAnimationFrame(() => requestAnimationFrame(styleCursor));
+      if (pendingPlaybackResume !== null) {
+        const { tick, play } = pendingPlaybackResume;
+        pendingPlaybackResume = null;
+        if (tick > 0) api.tickPosition = tick;
+        if (play) api.playPause();
+      }
+    });
 
     api.playerStateChanged.on(args => {
       const playing = args.state === alphaTab.synth.PlayerState.Playing;
+      isPlaying = playing;
       btnPlay.textContent = playing ? '⏸' : '▶'; btnPlay.title = playing ? 'Pause' : 'Play';
       if (playing) { if (!cursorTimer) cursorTimer = setInterval(styleCursor, 250); } else { if (cursorTimer){clearInterval(cursorTimer);cursorTimer=null;} }
       // YouTube sync
@@ -1233,6 +1301,7 @@
   // ── Unified grid (instruments labels + bar cells in the same rows) ──
   function selectTrack(idx) {
     if (!currentScore) return;
+    selectedTrackIdx = idx;
     secAllBtnEl.classList.toggle('active', idx === -1);
     frozenTrackRowsEl.querySelectorAll('.tgr-row .tgr-label').forEach(lbl => {
       lbl.classList.toggle('active', parseInt(lbl.closest('.tgr-row').dataset.trackIdx) === idx);
@@ -1259,9 +1328,10 @@
   }
 
   function buildGrid(score) {
-    while (sectionStripEl.firstChild)    sectionStripEl.removeChild(sectionStripEl.firstChild);
-    while (frozenTrackRowsEl.firstChild) frozenTrackRowsEl.removeChild(frozenTrackRowsEl.firstChild);
-    while (barCellsGridEl.firstChild)    barCellsGridEl.removeChild(barCellsGridEl.firstChild);
+    while (sectionStripEl.firstChild) sectionStripEl.removeChild(sectionStripEl.firstChild);
+    frozenTrackRowsEl.querySelectorAll('.tgr-row').forEach(r => r.remove());
+    barCellsGridEl.querySelectorAll('.tgr-cells-row').forEach(r => r.remove());
+    barGridEmpty.remove();
     const bars = Array.from(score.masterBars);
     if (!bars.length) { barCellsGridEl.appendChild(barGridEmpty); barPosInfo.textContent = ''; return; }
 
@@ -1276,9 +1346,10 @@
 
     // Section strip (sits inside #section-strip-row, after the sticky "All" label)
     secs.forEach(sec => {
-      const bl = document.createElement('div'); bl.className='sec-block'; bl.style.width=(sec.barCount*BAR_W)+'px'; bl.dataset.barCount=String(sec.barCount); bl.style.background=sec.color; bl.title=(sec.displayLabel||'Unknown')+' — click to edit';
+      const bl = document.createElement('div'); bl.className='sec-block'; bl.style.width=(sec.barCount*BAR_W)+'px'; bl.dataset.barCount=String(sec.barCount); bl.style.background=sec.color;
+      bl.title = navEditMode ? (sec.displayLabel||'Section')+' — click to edit' : (sec.displayLabel||'Section')+' — click to play from here';
       const lb=document.createElement('span'); lb.textContent=sec.displayLabel; bl.appendChild(lb);
-      bl.addEventListener('click',e=>{if(addMode)return;e.stopPropagation();openSectionPopup(e.clientX,e.clientY,sec.startBar,'edit',null);});
+      bl.addEventListener('click',e=>{if(addMode)return;e.stopPropagation();if(navEditMode){openSectionPopup(e.clientX,e.clientY,sec.startBar,'edit',null);}else{if(api&&masterBarsRef[sec.startBar])api.tickPosition=masterBarsRef[sec.startBar].start;}});
       sectionStripEl.appendChild(bl);
     });
 
@@ -1322,7 +1393,9 @@
 
       const mix = document.createElement('div'); mix.className = 'tgr-mix';
       const trkVol = mixerVolumes[ti] ?? 100;
-      const trkPan = mixerPans[ti]    ?? 0;
+      const scorePan = track.playbackInfo ? Math.round(track.playbackInfo.balance / 16 * 200 - 100) : 0;
+      const trkPan = ov.pan != null ? ov.pan : scorePan;
+      mixerPans[ti] = trkPan;
 
       const muteBtn = document.createElement('button'); muteBtn.className='mix-btn'+(mixerMuted[ti]?' m-on':''); muteBtn.textContent='M'; muteBtn.title='Mute';
       muteBtn.addEventListener('click', () => { mixerMuted[ti]=!mixerMuted[ti]; muteBtn.classList.toggle('m-on',mixerMuted[ti]); if(api&&currentScore)api.changeTrackMute([currentScore.tracks[ti]],mixerMuted[ti]); });
@@ -1337,7 +1410,7 @@
       const dot  = document.createElement('div'); dot.className='pan-dot'; knob.appendChild(dot);
       updatePanKnob(knob, trkPan);
       knob.addEventListener('mousedown', e => { e.preventDefault(); panDragKnob=knob; panDragY=e.clientY; panDragStartVal=mixerPans[ti]??0; panDragTi=ti; });
-      knob.addEventListener('dblclick', e => { e.preventDefault(); mixerPans[ti]=0; updatePanKnob(knob,0); if(api&&currentScore)try{api.changeTrackPanning([currentScore.tracks[ti]],0);}catch(_){} });
+      knob.addEventListener('dblclick', e => { e.preventDefault(); applyTrackPan(ti, 0); });
 
       mix.appendChild(muteBtn); mix.appendChild(soloBtn); mix.appendChild(trkVolSl); mix.appendChild(knob);
       frozenRow.appendChild(lbl); frozenRow.appendChild(mix);
@@ -1391,9 +1464,11 @@
     const newVal = Math.max(-100, Math.min(100, panDragStartVal + Math.round(delta * 1.5)));
     mixerPans[panDragTi] = newVal;
     updatePanKnob(panDragKnob, newVal);
-    if (api && currentScore) try { api.changeTrackPanning([currentScore.tracks[panDragTi]], newVal / 100); } catch (_) {}
   });
-  document.addEventListener('mouseup', () => { panDragKnob = null; panDragTi = -1; });
+  document.addEventListener('mouseup', () => {
+    if (panDragKnob && panDragTi >= 0 && mixerPans[panDragTi] !== panDragStartVal) applyTrackPan(panDragTi, mixerPans[panDragTi]);
+    panDragKnob = null; panDragTi = -1;
+  });
 
 
   // ── Cursor ──
@@ -1412,11 +1487,16 @@
 
   // ── Load helpers ──
   function loadUrl(url) {
+    pendingSoundChangeSelect = null;
+    reloadData = url;
     currentFileKey=url; lsKey='gp-sections:'+url; lsTrackKey='gp-tracks:'+url;
     placeholder.style.display='none'; atContainer.style.display='block';
     showLoading(); initApi(); resetPlayer(); api.load(url);
   }
   function loadBuffer(buf, filename) {
+    pendingSoundChangeSelect = null;
+    // Copy before api.load() may transfer the underlying ArrayBuffer to the Web Worker
+    reloadData = new Uint8Array(buf instanceof ArrayBuffer ? buf.slice(0) : buf.buffer.slice(0));
     currentFileKey=filename; lsKey='gp-sections:'+filename; lsTrackKey='gp-tracks:'+filename;
     placeholder.style.display='none'; atContainer.style.display='block';
     showLoading(); initApi(); resetPlayer(); api.load(new Uint8Array(buf));
