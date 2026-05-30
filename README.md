@@ -32,13 +32,6 @@ python3 -m http.server 8080
 
 Or deploy to [GitHub Pages](https://pages.github.com) — the included `.gp` sample files are committed alongside `index.html` and will load automatically.
 
-## Sample files
-
-| File | Song |
-|------|------|
-| `papa_roach-last_resort.gp` | Papa Roach — Last Resort |
-| `pink_floyd-comfortably_numb.gp` | Pink Floyd — Comfortably Numb |
-
 ## Adding your own tabs
 
 Click **Open file…** in the sidebar and pick any Guitar Pro file. Files are loaded in-memory only — nothing is uploaded anywhere.
