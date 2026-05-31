@@ -261,26 +261,6 @@
       </div>
     </div>
 
-    <!-- Sample files -->
-    <div class="sidebar-section" id="sec-samples">
-      <div class="sidebar-label">Sample Files</div>
-      <ul class="file-list" id="sample-list">
-        <li class="file-item"
-            data-src="papa_roach-last_resort.gp"
-            data-key="papa_roach-last_resort.gp"
-            data-orig-label="Papa Roach — Last Resort">
-          <span class="icon">🎸</span><span>Papa Roach — Last Resort</span>
-        </li>
-        <li class="file-item"
-            data-src="pink_floyd-comfortably_numb.gp"
-            data-key="pink_floyd-comfortably_numb.gp"
-            data-orig-label="Pink Floyd — Comfortably Numb">
-          <span class="icon">🎸</span><span>Pink Floyd — Comfortably Numb</span>
-        </li>
-      </ul>
-      <div class="no-results" id="no-results-samples">No matches</div>
-    </div>
-
     <!-- User files -->
     <div class="sidebar-section" id="sec-user">
       <div class="sidebar-label">Your Files</div>
@@ -296,7 +276,7 @@
     <div class="placeholder" id="placeholder">
       <span class="placeholder-icon">🎼</span>
       <h2>Select a tab to get started</h2>
-      <p>Choose a sample file, or open your own .gp / .gp5 / .gpx file</p>
+      <p>Open your own .gp / .gp5 / .gpx file</p>
     </div>
     <div id="at-container"></div>
     <!-- YouTube mini-player (floats over score) -->
@@ -762,7 +742,7 @@
     const type = searchType.value;
     searchClear.classList.toggle('vis', q.length > 0);
 
-    let sampleVis = 0, userVis = 0;
+    let userVis = 0;
 
     document.querySelectorAll('.file-item').forEach(item => {
       const key  = item.dataset.key || '';
@@ -784,13 +764,11 @@
       }
       item.style.display = match ? '' : 'none';
       if (match) {
-        if (item.closest('#sample-list')) sampleVis++;
-        if (item.closest('#user-list'))   userVis++;
+        if (item.closest('#user-list')) userVis++;
       }
     });
 
-    document.getElementById('no-results-samples').style.display = (q && sampleVis === 0) ? 'block' : 'none';
-    document.getElementById('no-results-user').style.display    = (q && userVis   === 0) ? 'block' : 'none';
+    document.getElementById('no-results-user').style.display = (q && userVis === 0) ? 'block' : 'none';
   }
 
   searchInput.addEventListener('input', applySearch);
@@ -1503,13 +1481,6 @@
   }
 
   // ── File browser ──
-  document.querySelectorAll('#sample-list .file-item').forEach(item => {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.file-item').forEach(i=>i.classList.remove('active'));
-      item.classList.add('active'); loadUrl(item.dataset.src);
-    });
-  });
-
   document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('file-input').click());
   document.getElementById('file-input').addEventListener('change', e => {
     const file = e.target.files[0]; if(!file) return; e.target.value='';
