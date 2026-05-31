@@ -2,6 +2,8 @@
 
 A single-file browser app for opening, browsing, and playing Guitar Pro tabs — no installation or build step required.
 
+Try it live: https://rotadsr.github.io/web-guitarpro-library/
+
 ## Features
 
 - **Tab viewer & player** — renders score + tablature via [AlphaTab](https://alphatab.net), with play/pause/stop, seek bar, and tempo control
